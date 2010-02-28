@@ -57,7 +57,7 @@ namespace ReleaseBot
 
             hubConnection = new Hub(settings, this);
 
-            hubConnection.Me.TagInfo.Version = "Serie V:20100204";
+            hubConnection.Me.TagInfo.Version = "Serie V:20100228";
             hubConnection.Me.TagInfo.Slots = 2;
             // DO NOT CHANGE THIS LINE!
             hubConnection.Me.Set(UserInfo.PID, "7OP7K374IKV7YMEYUI5F5R4YICFT36M7FL64AWY");
