@@ -104,7 +104,7 @@ namespace ReleaseBot
 
         public static void LogMsg(string str)
         {
-            Console.WriteLine(String.Format("{1}:\t\t\t{0}", DateTime.Now.Ticks, str));
+            Program.WriteLine(String.Format("*** {1}:\t\t\t{0}", DateTime.Now.Ticks, str));
         }
 
         private static Testing Test(IEnumerable<KeyValuePair<string, ContentInfo>> tmp)

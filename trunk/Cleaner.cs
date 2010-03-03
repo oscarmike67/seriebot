@@ -44,10 +44,12 @@ namespace ReleaseBot
             {
                 do
                 {
+					Program.WriteLine("*** Cleaning memory: Start");
                     Service.CleanMemory();
 
                     GC.Collect();
-                    Thread.Sleep(interval);
+					Program.WriteLine("*** Cleaning memory: End");
+					Thread.Sleep(interval);
                 } while (true);
             }
             catch (ThreadAbortException) { }

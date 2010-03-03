@@ -31,7 +31,14 @@ namespace ReleaseBot
 {
     public class Program
     {
-        public const int MAX_NUMBER_OF_LINES_IN_MESSAGE = 15;
+        public static int MAX_NUMBER_OF_LINES_IN_MESSAGE = 15;
+		public static bool DEBUG = false;
+		public static string DEBUG_LOG_FILEPATH;
+
+		static Program()
+		{
+			DEBUG_LOG_FILEPATH = string.Format("msg-{0:yyyy-MM-dd hh.mm.ss.FFF}.log", DateTime.Now);
+		}
 
         [SecurityPermission(SecurityAction.Demand, Flags = SecurityPermissionFlag.ControlAppDomain)]
         static void Main(string[] args)
@@ -41,47 +48,58 @@ namespace ReleaseBot
 
 			HubSetting settings = new HubSetting();
 
-            Console.WriteLine("NofArguments:" + args.Length);
+			WriteLine("*** NofArguments:" + args.Length);
             string file = null;
             if (args.Length > 0)
             {
                 file = args[0];
-                Console.WriteLine(string.Format("Arguments[0 = {0}]", file));
+				WriteLine(string.Format("*** Arguments[0 = {0}]", file));
             }else{
-                Console.WriteLine("No arguments");
+                WriteLine("*** No arguments");
                 file = "localhost.xml";
             }
 
             if (!string.IsNullOrEmpty(file) && !string.IsNullOrEmpty(file.Trim()))
             {
-                Xmpl xml = new Xmpl();
+                Settings xml = new Settings();
                 xml.Read(file);
                 if (xml.Hubs.Count > 0)
                 {
                     settings = xml.Hubs[0];
-                }
+					DEBUG = xml.UseDebug;
+					int tmp = xml.MaxNumberOfLinesInMessage;
+					if (tmp > 0)
+					{
+						MAX_NUMBER_OF_LINES_IN_MESSAGE = tmp;
+					}
+
+					DcBot bot = new DcBot(settings);
+					bot.Connect();
+
+					Cleaner.Start();
+				}
                 else
                 {
-                    Console.WriteLine("No hubs found in settings file.");
+                    WriteLine("*** No hubs found in settings file.");
 					settings.Address = "127.0.0.1";
-					settings.Port = 441;
+					settings.Port = 411;
 					settings.DisplayName = "Serie";
 					settings.Protocol = "Nmdc";
 					settings.UserDescription = "https://code.google.com/p/seriebot/";
 
-					xml = new Xmpl();
+					// Add default values so user know that it is possible to customize.
+					settings.Set(Settings.KEY_USE_DEBUG, DEBUG.ToString());
+					settings.Set(Settings.KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE, MAX_NUMBER_OF_LINES_IN_MESSAGE.ToString());
+
+					xml = new Settings();
 					xml.Hubs.Add(settings);
 					xml.Write("localhost.xml");
-					Console.WriteLine("Example setting file has been created.");
+					WriteLine("*** Example setting file has been created.");
+					WriteLine("*** Press enter/return key to quit.");
 				}
             }
-
-            DcBot bot = new DcBot(settings);
-            bot.Connect();
-
-            Cleaner.Start();
-
-            Console.Read();
+			Console.Read();
+			WriteLine("*** Application terminated by user.");
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -93,5 +111,32 @@ namespace ReleaseBot
                 File.WriteAllText(path, ex.ToString());
             }
         }
+
+		public static void WriteLine()
+		{
+			WriteLine(string.Empty);
+		}
+		public static void WriteLine(string str)
+		{
+			Write(str + "\r\n");
+		}
+
+		public static void Write(object obj)
+		{
+			if (obj == null)
+				Write("null");
+			else
+				Write(obj.ToString());
+		}
+
+		public static void Write(string str)
+		{
+			System.Console.Write(str);
+			// Logg every message to file
+			if (Program.DEBUG)
+			{
+				File.AppendAllText(DEBUG_LOG_FILEPATH, str);
+			}
+		}
     }
 }

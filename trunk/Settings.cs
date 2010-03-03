@@ -18,15 +18,92 @@
  *
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.Xml;
+using FlowLib.Containers;
+using FlowLib.Utils.Convert.Settings;
 
 namespace ReleaseBot
 {
-	public class Settings
+	public static class SettingsExtensionMethods
 	{
-
+		public static HubSetting GetFirstOrDefault(this Settings set)
+		{
+			if (set != null && set.Hubs != null && set.Hubs.Count > 0)
+			{
+				return set.Hubs[0];
+			}
+			else
+			{
+				return null;
+			}
+		}
 	}
+
+	public class Settings : Xmpl
+	{
+		public const string KEY_USE_DEBUG = "UseDefault";
+		public const string KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE = "MaxNofLinesInMsg";
+
+		public bool UseDebug
+		{
+			get
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return false;
+
+				string strValue;
+				bool usDebg;
+				if (fhub.TryGetValue(KEY_USE_DEBUG, out strValue) && bool.TryParse(strValue, out usDebg))
+					return usDebg;
+				else
+					return false;
+			}
+			set
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return;
+
+				fhub.Set(KEY_USE_DEBUG, value.ToString());
+			}
+		}
+
+		public int MaxNumberOfLinesInMessage
+		{
+			get
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return -1;
+
+				string strValue;
+				int value;
+				if (fhub.TryGetValue(KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE, out strValue) && int.TryParse(strValue, out value))
+					return value;
+				else
+					return -1;
+			}
+			set
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return;
+
+				fhub.Set(KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE, value.ToString());
+			}
+		}
+
+		public Settings()
+			: base()
+		{
+			System.Collections.Generic.List<string> hubAttr = Nodes["Hub"];
+			Nodes.Remove("Hub");
+			hubAttr.Add(KEY_USE_DEBUG);
+			hubAttr.Add(KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE);
+			Nodes.Add("Hub", hubAttr);
+
+		}
+    }
 }

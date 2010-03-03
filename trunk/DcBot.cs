@@ -57,7 +57,7 @@ namespace ReleaseBot
 
             hubConnection = new Hub(settings, this);
 
-            hubConnection.Me.TagInfo.Version = "Serie V:20100228";
+            hubConnection.Me.TagInfo.Version = "Serie V:20100303";
             hubConnection.Me.TagInfo.Slots = 2;
             // DO NOT CHANGE THIS LINE!
             hubConnection.Me.Set(UserInfo.PID, "7OP7K374IKV7YMEYUI5F5R4YICFT36M7FL64AWY");
@@ -77,24 +77,24 @@ namespace ReleaseBot
             switch (e.Action)
             {
                 case TcpConnection.Connecting:
-                    Console.WriteLine("Connecting...");
+                    Program.WriteLine("*** Hub Connecting...");
                     break;
                 case TcpConnection.Connected:
-                    Console.WriteLine("Connected.");
+                    Program.WriteLine("*** Hub Connected.");
                     break;
                 case TcpConnection.Disconnected:
-                    Console.Write("Disconnected.");
-                    Console.Write(e.Data);
-                    Console.WriteLine();
+                    Program.Write("*** Hub Disconnected.");
+					Program.Write(e.Data);
+					Program.WriteLine();
                     break;
                 default:
-                    Console.Write("Unknown status.");
-                    Console.Write(e.Data);
-                    Console.WriteLine();
+                    Program.Write("*** Hub has Unknown connection status.");
+					Program.Write(e.Data);
+					Program.WriteLine();
                     break;
             }
 
-            Console.WriteLine("");
+			Program.WriteLine();
         }
 
         void downloadManager_DownloadCompleted(object sender, FmdcEventArgs e)
@@ -106,7 +106,7 @@ namespace ReleaseBot
 
         public void Connect()
         {
-            Console.WriteLine("Function: Connect, called.");
+            Program.WriteLine("*** Function: Connect, called.");
             hubConnection.Connect();
         }
 
@@ -163,10 +163,58 @@ namespace ReleaseBot
             if (hubConnection != null)
             {
                 hubConnection.Protocol.Update += new FmdcEventHandler(prot_Update);
+				if (Program.DEBUG){
+					hubConnection.Protocol.MessageReceived += new FmdcEventHandler(Protocol_MessageReceived);
+					hubConnection.Protocol.MessageToSend += new FmdcEventHandler(Protocol_MessageToSend);
+				}
             }
         }
 
-        void Protocol_RequestTransfer(object sender, FmdcEventArgs e)
+		void Protocol_MessageToSend(object sender, FmdcEventArgs e)
+		{
+			StrMessage msg = e.Data as StrMessage;
+			if (msg != null)
+			{
+				Program.Write(string.Format("[{0}] HUB SEN: {1}\r\n",
+					System.DateTime.Now.ToLongTimeString(),
+					msg.Raw));
+			}
+		}
+
+		void Protocol_MessageReceived(object sender, FmdcEventArgs e)
+		{
+			StrMessage msg = e.Data as StrMessage;
+			if (msg != null)
+			{
+				Program.Write(string.Format("[{0}] HUB REC: {1}\r\n",
+					System.DateTime.Now.ToLongTimeString(),
+					msg.Raw));
+			}
+		}
+
+		void Trans_Protocol_MessageToSend(object sender, FmdcEventArgs e)
+		{
+			StrMessage msg = e.Data as StrMessage;
+			if (msg != null)
+			{
+				Program.Write(string.Format("[{0}] TRA SEN: {1}\r\n",
+					System.DateTime.Now.ToLongTimeString(),
+					msg.Raw));
+			}
+		}
+
+		void Trans_Protocol_MessageReceived(object sender, FmdcEventArgs e)
+		{
+			StrMessage msg = e.Data as StrMessage;
+			if (msg != null)
+			{
+				Program.Write(string.Format("[{0}] TRA REC: {1}\r\n",
+					System.DateTime.Now.ToLongTimeString(),
+					msg.Raw));
+			}
+		}
+
+		void Protocol_RequestTransfer(object sender, FmdcEventArgs e)
         {
             TransferRequest req = e.Data as TransferRequest;
             req = transferManager.GetTransferReq(req.Key);
@@ -238,10 +286,15 @@ namespace ReleaseBot
                         trans.SecureUpdate += new FmdcEventHandler(trans_SecureUpdate);
 #endif
                         transferManager.StartTransfer(trans);
+						trans.ProtocolChange += new FmdcEventHandler(trans_ProtocolChange);
                         trans.Protocol.ChangeDownloadItem += new FmdcEventHandler(Protocol_ChangeDownloadItem);
                         trans.Protocol.RequestTransfer += new FmdcEventHandler(Protocol_RequestTransfer);
                         trans.Protocol.Error += new FmdcEventHandler(Protocol_Error);
-
+						if (Program.DEBUG)
+						{
+							trans.Protocol.MessageReceived += new FmdcEventHandler(Trans_Protocol_MessageReceived);
+							trans.Protocol.MessageToSend += new FmdcEventHandler(Trans_Protocol_MessageToSend);
+						}
                     }
                     break;
                 case Actions.MainMessage:
@@ -254,10 +307,13 @@ namespace ReleaseBot
                     }
                     else
                     {
-                        System.Console.Write(string.Format("[{0}] <{1}> {2}\r\n",
-                            System.DateTime.Now.ToLongTimeString(),
-                            msgMain.From,
-                            msgMain.Content));
+						if (!Program.DEBUG)
+						{
+							Program.Write(string.Format("[{0}] <{1}> {2}\r\n",
+								System.DateTime.Now.ToLongTimeString(),
+								msgMain.From,
+								msgMain.Content));
+						}
                     }
                     break;
                 case Actions.PrivateMessage:
@@ -270,13 +326,32 @@ namespace ReleaseBot
                     }
                     else
                     {
-                        System.Console.Write(string.Format("[{0}] PM:{1}\r\n",
-                            System.DateTime.Now.ToLongTimeString(),
-                            msgPriv.Content));
+						if (!Program.DEBUG)
+						{
+							Program.Write(string.Format("[{0}] PM:{1}\r\n",
+								System.DateTime.Now.ToLongTimeString(),
+								msgPriv.Content));
+						}
                     }
                     break;
             }
         }
+
+		void trans_ProtocolChange(object sender, FmdcEventArgs e)
+		{
+			Transfer trans = sender as Transfer;
+			if (trans != null)
+			{
+				trans.Protocol.ChangeDownloadItem += new FmdcEventHandler(Protocol_ChangeDownloadItem);
+				trans.Protocol.RequestTransfer += new FmdcEventHandler(Protocol_RequestTransfer);
+				trans.Protocol.Error += new FmdcEventHandler(Protocol_Error);
+				if (Program.DEBUG)
+				{
+					trans.Protocol.MessageReceived += new FmdcEventHandler(Trans_Protocol_MessageReceived);
+					trans.Protocol.MessageToSend += new FmdcEventHandler(Trans_Protocol_MessageToSend);
+				}
+			}
+		}
 
         void Protocol_Error(object sender, FmdcEventArgs e)
         {
