@@ -135,7 +135,10 @@ namespace ReleaseBot
 			// Logg every message to file
 			if (Program.DEBUG)
 			{
-				File.AppendAllText(DEBUG_LOG_FILEPATH, str);
+				lock (DEBUG_LOG_FILEPATH)
+				{
+					File.AppendAllText(DEBUG_LOG_FILEPATH, str);
+				}
 			}
 		}
     }
