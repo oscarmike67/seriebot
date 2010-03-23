@@ -92,10 +92,13 @@ namespace ReleaseBot
 
                 if (share != null)
                 {
-                    if ("new".Equals(func))
-                    {
-                        FuncNew(connection, share, usrId);
-                    }
+					switch (func)
+					{
+						case "new":
+							FuncListShare(connection, share, usrId, false); break;
+						case "list":
+							FuncListShare(connection, share, usrId, true); break;
+					}
                 }
             }
 
@@ -165,17 +168,11 @@ namespace ReleaseBot
             t.Progress = 1;
         }
 
-        public static void FuncNew(DcBot connection, Share share, string usrId)
-        {
+		public static void FuncListShare(DcBot connection, Share share, string usrId, bool listAll)
+		{
             int lines = 0;
             StringBuilder sb = new StringBuilder("Your current serie information:\r\n");
             lines++;
-            //SortedList<string, int> listIgnore = new SortedList<string, int>();
-            //SortedList<string, int> listWithDuplicates = new SortedList<string, int>();
-
-            //IEnumerable<KeyValuePair<string, int>> listIgnore;
-            //IEnumerable<KeyValuePair<string, int>> listWithDuplicates;
-
 
             #region Get latest version of all series
             LogMsg("Copy and split share");
@@ -204,8 +201,6 @@ namespace ReleaseBot
             System.Collections.Specialized.StringDictionary sd = new System.Collections.Specialized.StringDictionary();
 
             var listIgnore = t1Func.IgnoreList.Union(t2Func.IgnoreList).ToDictionary(f => f.Key, System.Collections.Generic.EqualityComparer<string>.Default);
-            //var listWithDuplicates = t1Func.DuplicatesList.Union(t2Func.DuplicatesList).ToDictionary(f => f.Key, System.Collections.Generic.EqualityComparer<string>.Default);
-            //var listWithDuplicates = t1Func.DuplicatesList.Where(f => !t2Func.DuplicatesList.ContainsKey(f.Key) || f.Value > t2Func.DuplicatesList[f.Key]).Union(t2Func.DuplicatesList).ToDictionary(f => f.Key, System.Collections.Generic.EqualityComparer<string>.Default);
 
             var listWithDuplicates = t1Func.DuplicatesList.Where(
                 f => !t2Func.DuplicatesList.ContainsKey(f.Key)
@@ -213,14 +208,6 @@ namespace ReleaseBot
                 f2 => !t1Func.DuplicatesList.ContainsKey(f2.Key)
                     || f2.Value > t1Func.DuplicatesList[f2.Key]))
                     .ToDictionary(f3 => f3.Key, System.Collections.Generic.EqualityComparer<string>.Default);
-
-            //var listWithDuplicates = t1Func.DuplicatesList.Where(
-            //    f => !t2Func.DuplicatesList.ContainsKey(f.Key)
-            //        || f.Value > t2Func.DuplicatesList[f.Key]).Union(t2Func.DuplicatesList.Where(
-            //    f2 => !t1Func.DuplicatesList.ContainsKey(f2.Key)
-            //        || f2.Value > t1Func.DuplicatesList[f2.Key]))
-            //        .ToDictionary(f3 => f3.Key, System.Collections.Generic.EqualityComparer<string>.Default);
-
 
             LogMsg("/Find Ignore and Series");
             #endregion
@@ -301,20 +288,25 @@ namespace ReleaseBot
                         }
                         else if (currentSeason == usrSeason)
                         {
-                            if (currentEpisode > usrEpisode)
-                            {
-                                int difEpisode = currentEpisode - usrEpisode;
-                                if (difEpisode == 1)
-                                {
-                                    sb.AppendFormat("\t{0}: You are behind {1} episode.", info.Name, difEpisode);
-                                    addedInfo = true;
-                                }
-                                else
-                                {
-                                    sb.AppendFormat("\t{0}: You are behind {1} episodes.", info.Name, difEpisode);
-                                    addedInfo = true;
-                                }
-                            }
+							if (currentEpisode > usrEpisode)
+							{
+								int difEpisode = currentEpisode - usrEpisode;
+								if (difEpisode == 1)
+								{
+									sb.AppendFormat("\t{0}: You are behind {1} episode.", info.Name, difEpisode);
+									addedInfo = true;
+								}
+								else
+								{
+									sb.AppendFormat("\t{0}: You are behind {1} episodes.", info.Name, difEpisode);
+									addedInfo = true;
+								}
+							}
+							else if (listAll)
+							{
+								sb.AppendFormat("\t{0}: You have the latest episode.", info.Name);
+								addedInfo = true;
+							}
                         }
 
                         if (addedInfo)

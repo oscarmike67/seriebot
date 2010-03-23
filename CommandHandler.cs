@@ -62,6 +62,7 @@ namespace ReleaseBot
                 command = command.ToLower();
             }
 
+			User usr = null;
             switch (command)
             {
                 case "next":
@@ -119,7 +120,7 @@ namespace ReleaseBot
                     }
                     break;
                 case "new":
-                    User usr = connection.GetUser(id);
+                    usr = connection.GetUser(id);
                     if (usr != null)
                     {
                         long share;
@@ -138,7 +139,27 @@ namespace ReleaseBot
                         }
                     }
                     break;
-                case "ignore":
+				case "list":
+					usr = connection.GetUser(id);
+					if (usr != null)
+					{
+						long share;
+						if (usr.Tag.Mode != FlowLib.Enums.ConnectionTypes.Direct)
+						{
+							connection.SendMessage(Actions.PrivateMessage, id, "You need to be active to use this command.");
+						}
+						else if (!long.TryParse(usr.UserInfo.Share, out share) || share <= 0)
+						{
+							connection.SendMessage(Actions.PrivateMessage, id, "You need to share stuff to use this command.");
+						}
+						else
+						{
+							connection.SendMessage(Actions.PrivateMessage, id, "Please note that this command may take several minutes to complete. (Writing the command more then once will reset your position in queue and place you last)");
+							connection.GetFileList(usr, "list");
+						}
+					}
+					break;
+				case "ignore":
                     if (param == null)
                     {
                         sb = new StringBuilder();
