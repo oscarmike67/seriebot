@@ -30,8 +30,12 @@ namespace ReleaseBot
     public class Service
     {
         static string _directory = null;
-        static Regex _regExp = new Regex(@".*\\([a-zA-Z\.]+)\.[S|s]([0-9]{1,2})[E|e]([0-9]{0,2}).*\\.*", RegexOptions.Compiled);
-        private static bool _NeedSleep;
+        //static Regex _regExp = new Regex(@".*\\([a-zA-Z\.]+)\.[S|s]([0-9]{1,2})[E|e]([0-9]{0,2}).*\\.*", RegexOptions.Compiled);
+		//static Regex _regExp = new Regex(@".*\\([a-zA-Z\.]+)\.[S|s]{0,1}([0-9]{1,2})[E|e|X|x]([0-9]{0,2}).*[\\|.].*", RegexOptions.Compiled);
+		//static Regex _regExp = new Regex(@".*\\([a-zA-Z0-9\.]+)\.[S|s]{0,1}([0-9]{1,2})[E|e|X|x]([0-9]{0,2}).*[\\|.].*", RegexOptions.Compiled);
+		//static Regex _regExp = new Regex(@".*\\(?<Name>[a-zA-Z0-9\.\ ]+)\.[S|s]{0,1}(?<Season>[0-9]{1,2})[E|e|X|x](?<Episode>[0-9]{0,2}).*[\\|.].*", RegexOptions.Compiled);
+		static Regex _regExp = new Regex(@".*\\(?<Name>[a-zA-Z0-9\.\ \'\-]+)[\.|\ ][S|s]{0,1}(?<Season>[0-9]{1,2})[E|e|X|x](?<Episode>[0-9]{0,2}).*[\\|.].*", RegexOptions.Compiled);
+		private static bool _NeedSleep;
 
         public static string Directory
         {
@@ -63,9 +67,14 @@ namespace ReleaseBot
             {
                 if (m.Groups.Count == 4)
                 {
-                    name = m.Groups[1].Value.ToLower().Replace('.', ' ');
-                    int.TryParse(m.Groups[2].Value, out seasonNr);
-                    int.TryParse(m.Groups[3].Value, out episodeNr);
+					StringBuilder sb = new StringBuilder(m.Groups["Name"].Value.ToLower());
+					sb.Replace('.', ' ');
+					sb.Replace('\'',' ');
+					sb.Replace('-',' ');
+					name = sb.ToString();
+                    //name = m.Groups["Name"].Value.ToLower().Replace('.', ' ');
+                    int.TryParse(m.Groups["Season"].Value, out seasonNr);
+                    int.TryParse(m.Groups["Episode"].Value, out episodeNr);
                     //name = m.Groups[1].Value;
                     //version = m.Groups[2].Value;
                     //version = m.Groups[3].Value;
