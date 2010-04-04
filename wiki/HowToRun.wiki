@@ -12,7 +12,7 @@
   * Run the exe file located in the binaries folder (You can close it after you see the line: _Example setting file has been created._).
   * Copy localhost.xml and name is hub1.xml.
   * Rename localhost.xml to hub2.xml
-  * Edit hub1.xml and hub1.xml files after your needs.
+  * Edit hub1.xml and hub2.xml files after your needs.
   * Run the exe file again but this time with the xml files you just created as arguments. 
 
 *For example:*
