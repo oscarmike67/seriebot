@@ -33,6 +33,10 @@ namespace ReleaseBot
     {
         public static int MAX_NUMBER_OF_LINES_IN_MESSAGE = 15;
 		public static bool DEBUG = false;
+		public static bool USE_ACTIVE_MODE = false;
+		public static int PORT_ACTIVE = 11010;
+		public static int PORT_TLS = 11011;
+
 		public static string DEBUG_LOG_FILEPATH;
 
 		static Program()
@@ -66,7 +70,20 @@ namespace ReleaseBot
                 if (xml.Hubs.Count > 0)
                 {
                     settings = xml.Hubs[0];
+					// Set custom settings
 					DEBUG = xml.UseDebug;
+					USE_ACTIVE_MODE = xml.UserActiveConnectionMode;
+					int prt = xml.ActivePort;
+					if (prt >= System.Net.IPEndPoint.MinPort && prt <= System.Net.IPEndPoint.MaxPort)
+					{
+						PORT_ACTIVE = prt;
+					}
+					int prtTls = xml.TlsPort;
+					if (prtTls >= System.Net.IPEndPoint.MinPort && prtTls <= System.Net.IPEndPoint.MaxPort)
+					{
+						PORT_TLS = prtTls;
+					}
+
 					int tmp = xml.MaxNumberOfLinesInMessage;
 					if (tmp > 0)
 					{
@@ -90,6 +107,9 @@ namespace ReleaseBot
 					// Add default values so user know that it is possible to customize.
 					settings.Set(Settings.KEY_USE_DEBUG, DEBUG.ToString());
 					settings.Set(Settings.KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE, MAX_NUMBER_OF_LINES_IN_MESSAGE.ToString());
+					settings.Set(Settings.KEY_USE_ACTIVE_CONNECTION_MODE, USE_ACTIVE_MODE.ToString());
+					settings.Set(Settings.KEY_PORT_TCP_AND_UDP, PORT_ACTIVE.ToString());
+					settings.Set(Settings.KEY_PORT_TLS, PORT_TLS.ToString());
 
 					xml = new Settings();
 					xml.Hubs.Add(settings);

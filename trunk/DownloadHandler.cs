@@ -95,10 +95,12 @@ namespace ReleaseBot
 					switch (func)
 					{
 						case "new":
-							FuncListShare(connection, share, usrId, false); break;
+							FuncListShare(connection, share, usrId, FunctionTypes.ListNewEpisodes); break;
 						case "list":
-							FuncListShare(connection, share, usrId, true); break;
-					}
+							FuncListShare(connection, share, usrId, FunctionTypes.ListAllEpisodes); break;
+                        case "debug":
+                            FuncListShare(connection, share, usrId, FunctionTypes.ListDebugInfoOnEpisodes); break;
+                    }
                 }
             }
 
@@ -129,7 +131,7 @@ namespace ReleaseBot
             IEnumerable<KeyValuePair<string, ContentInfo>> tmp = t.Data;
 
             var listIgnore = new SortedList<string, int>();
-            var listWithDuplicates = new SortedList<string, int>();
+            var listWithDuplicates = new SortedList<string, EpisodeInfo>();
 
             foreach (KeyValuePair<string, ContentInfo> ci in tmp)
             {
@@ -146,17 +148,22 @@ namespace ReleaseBot
                 else if (Service.TryGetSerie(filename, out name, out seasonNr, out episodeNr))
                 {
                     int version = seasonNr = (seasonNr * 100) + episodeNr;
+
+                    EpisodeInfo ep = new EpisodeInfo();
+                    ep.Version = version;
+                    ep.RawFileName = filename;
+
                     if (!listWithDuplicates.ContainsKey(name))
                     {
-                        listWithDuplicates.Add(name, version);
+                        listWithDuplicates.Add(name, ep);
                     }
                     else
                     {
-                        int tmpVersion = listWithDuplicates[name];
-                        if (tmpVersion < version)
+                        EpisodeInfo tmpEp = listWithDuplicates[name];
+                        if (tmpEp.Version < version)
                         {
                             listWithDuplicates.Remove(name);
-                            listWithDuplicates.Add(name, version);
+                            listWithDuplicates.Add(name, ep);
                         }
                     }
                 }
@@ -168,7 +175,12 @@ namespace ReleaseBot
             t.Progress = 1;
         }
 
-		public static void FuncListShare(DcBot connection, Share share, string usrId, bool listAll)
+        //public static void FuncListShare(DcBot connection, Share share, string usrId, bool listAll)
+        //{
+
+        //}
+
+        public static void FuncListShare(DcBot connection, Share share, string usrId, FunctionTypes funcType)
 		{
             int lines = 0;
             StringBuilder sb = new StringBuilder("Your current serie information:\r\n");
@@ -204,16 +216,16 @@ namespace ReleaseBot
 
             var listWithDuplicates = t1Func.DuplicatesList.Where(
                 f => !t2Func.DuplicatesList.ContainsKey(f.Key)
-                    || f.Value >= t2Func.DuplicatesList[f.Key]).Union(t2Func.DuplicatesList.Where(
+                    || f.Value.Version >= t2Func.DuplicatesList[f.Key].Version).Union(t2Func.DuplicatesList.Where(
                 f2 => !t1Func.DuplicatesList.ContainsKey(f2.Key)
-                    || f2.Value > t1Func.DuplicatesList[f2.Key]))
+                    || f2.Value.Version > t1Func.DuplicatesList[f2.Key].Version))
                     .ToDictionary(f3 => f3.Key, System.Collections.Generic.EqualityComparer<string>.Default);
 
             LogMsg("/Find Ignore and Series");
             #endregion
 
             #region Get info from series and remove duplicates (happens because of different folder names)
-            SortedList<SerieInfo, int> list = new SortedList<SerieInfo, int>();
+            SortedList<SerieInfo, EpisodeInfo> list = new SortedList<SerieInfo, EpisodeInfo>();
 
             LogMsg("Get Series");
             foreach (var seriePair in listWithDuplicates)
@@ -224,7 +236,7 @@ namespace ReleaseBot
                     bool addValue = true;
                     if (list.ContainsKey(info))
                     {
-                        if (list[info] >= seriePair.Value.Value)
+                        if (list[info].Version >= seriePair.Value.Value.Version)
                         {
                             addValue = false;
                         }
@@ -268,53 +280,67 @@ namespace ReleaseBot
                         int currentSeason = ep.Version / 100;
                         int currentEpisode = ep.Version % 100;
 
-                        int usrSeason = seriePair.Value / 100;
-                        int usrEpisode = seriePair.Value % 100;
+                        int usrSeasonVersion = seriePair.Value.Version / 100;
+                        int usrEpisodeVersion = seriePair.Value.Version % 100;
+                        EpisodeInfo usrEpisode = seriePair.Value;
 
                         bool addedInfo = false;
 
-                        if (currentSeason > usrSeason)
-                        {
-                            if (currentSeason == (usrSeason + 1))
-                            {
-                                sb.AppendFormat("\t{0}: A new season have started.", info.Name);
-                                addedInfo = true;
-                            }
-                            else
-                            {
-                                sb.AppendFormat("\t{0}: You are behind more then one season.", info.Name);
-                                addedInfo = true;
-                            }
-                        }
-                        else if (currentSeason == usrSeason)
-                        {
-							if (currentEpisode > usrEpisode)
-							{
-								int difEpisode = currentEpisode - usrEpisode;
-								if (difEpisode == 1)
-								{
-									sb.AppendFormat("\t{0}: You are behind {1} episode.", info.Name, difEpisode);
-									addedInfo = true;
-								}
-								else
-								{
-									sb.AppendFormat("\t{0}: You are behind {1} episodes.", info.Name, difEpisode);
-									addedInfo = true;
-								}
-							}
-							else if (listAll)
-							{
-								sb.AppendFormat("\t{0}: You have the latest episode.", info.Name);
-								addedInfo = true;
-							}
-                        }
 
-                        if (addedInfo)
+                        switch (funcType)
                         {
-                            anyInfo = true;
-                            sb.AppendFormat("\t\t(Your last episode is: S{0:00}E{1:00})\r\n", usrSeason, usrEpisode);
-                            servicesUsed.Add(info.ServiceAddress);
-                            lines++;
+                            case FunctionTypes.ListAllEpisodes:
+                            case FunctionTypes.ListNewEpisodes:
+                                if (currentSeason > usrSeasonVersion)
+                                {
+                                    if (currentSeason == (usrSeasonVersion + 1))
+                                    {
+                                        sb.AppendFormat("\t{0}: A new season have started.", info.Name);
+                                        addedInfo = true;
+                                    }
+                                    else
+                                    {
+                                        sb.AppendFormat("\t{0}: You are behind more then one season.", info.Name);
+                                        addedInfo = true;
+                                    }
+                                }
+                                else if (currentSeason == usrSeasonVersion)
+                                {
+                                    if (currentEpisode > usrEpisodeVersion)
+                                    {
+                                        int difEpisode = currentEpisode - usrEpisodeVersion;
+                                        if (difEpisode == 1)
+                                        {
+                                            sb.AppendFormat("\t{0}: You are behind {1} episode.", info.Name, difEpisode);
+                                            addedInfo = true;
+                                        }
+                                        else
+                                        {
+                                            sb.AppendFormat("\t{0}: You are behind {1} episodes.", info.Name, difEpisode);
+                                            addedInfo = true;
+                                        }
+                                    }
+                                    else if (funcType == FunctionTypes.ListAllEpisodes)
+                                    {
+                                        sb.AppendFormat("\t{0}: You have the latest episode.", info.Name);
+                                        addedInfo = true;
+                                    }
+                                }
+
+                                if (addedInfo)
+                                {
+                                    anyInfo = true;
+                                    sb.AppendFormat("\t\t(Your last episode is: S{0:00}E{1:00})\r\n", usrSeasonVersion,
+                                                    usrEpisodeVersion);
+                                    servicesUsed.Add(info.ServiceAddress);
+                                    lines++;
+                                }
+                                break;
+                            case FunctionTypes.ListDebugInfoOnEpisodes:
+                                    anyInfo = true;
+                                    sb.AppendFormat("\t{0}\t(Episode: S{1:00}E{2:00})\r\n\t\t{3}\r\n", info.Name, usrSeasonVersion,
+                                                    usrEpisodeVersion, usrEpisode.RawFileName);
+                                break;
                         }
                     }
                 }
@@ -329,14 +355,18 @@ namespace ReleaseBot
             }
             LogMsg("/Display Series");
 
-            if (!anyInfo)
+            switch (funcType)
             {
-                sb.AppendLine("You seem to have latest episode of every serie you are sharing!");
+                case FunctionTypes.ListNewEpisodes:
+                    if (!anyInfo)
+                    {
+                        sb.AppendLine("You seem to have latest episode of every serie you are sharing!");
+                    }
+                    break;
             }
 
             sb.AppendLine();
             sb.AppendLine();
-
 
             sb.Append("This result was given to you by: http://code.google.com/p/seriebot/ ");
             string[] servicesUsedDistinct = servicesUsed.Distinct().ToArray();

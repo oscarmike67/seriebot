@@ -42,6 +42,9 @@ namespace ReleaseBot
         DownloadManager downloadManager = new DownloadManager();
         string currentDir = System.AppDomain.CurrentDomain.BaseDirectory;
 
+		TcpConnectionListener incomingConnectionListener = null;
+		TcpConnectionListener incomingConnectionListenerTLS = null;
+
         Hub hubConnection = null;
 
         public DcBot(HubSetting settings)
@@ -52,6 +55,20 @@ namespace ReleaseBot
 
             // Creates a empty share
             Share share = new Share("Testing");
+			// Do we want bot to be active?
+			if (Program.USE_ACTIVE_MODE)
+			{
+				share.Port = Program.PORT_ACTIVE;
+
+				incomingConnectionListener = new TcpConnectionListener(share.Port);
+				incomingConnectionListener.Update += new FmdcEventHandler(Connection_Update);
+				incomingConnectionListener.Start();
+
+				// TLS listener
+				incomingConnectionListenerTLS = new TcpConnectionListener(Program.PORT_TLS);
+				incomingConnectionListenerTLS.Update += new FmdcEventHandler(Connection_UpdateTLS);
+				incomingConnectionListenerTLS.Start();
+			}
             // Adds common filelist to share
             AddFilelistsToShare(share);
 
@@ -61,18 +78,81 @@ namespace ReleaseBot
             hubConnection.Me.TagInfo.Slots = 2;
             // DO NOT CHANGE THIS LINE!
             hubConnection.Me.Set(UserInfo.PID, "7OP7K374IKV7YMEYUI5F5R4YICFT36M7FL64AWY");
-            hubConnection.Me.TagInfo.Mode = FlowLib.Enums.ConnectionTypes.Passive;
+
+			// Adds share to hub
+			hubConnection.Share = share;
+
+
+			// Do we want bot to be active?
+			if (Program.USE_ACTIVE_MODE)
+			{
+				hubConnection.Me.TagInfo.Mode = FlowLib.Enums.ConnectionTypes.Direct;
+				hubConnection.Me.Set(UserInfo.SECURE, Program.PORT_TLS.ToString());
+			}
+			else
+			{
+				hubConnection.Me.TagInfo.Mode = FlowLib.Enums.ConnectionTypes.Passive;
+				hubConnection.Me.Set(UserInfo.SECURE, "");
+			}
 
             hubConnection.ConnectionStatusChange += new FmdcEventHandler(hubConnection_ConnectionStatusChange);
             hubConnection.ProtocolChange += new FmdcEventHandler(hubConnection_ProtocolChange);
             hubConnection.SecureUpdate += new FmdcEventHandler(hubConnection_SecureUpdate);
 
-            // Adds share to hub
-            hubConnection.Share = share;
-            hubConnection.Me.Set(UserInfo.SECURE, "");
         }
 
-        void hubConnection_ConnectionStatusChange(object sender, FmdcEventArgs e)
+		void Connection_Update(object sender, FlowLib.Events.FmdcEventArgs e)
+		{
+			switch (e.Action)
+			{
+				case Actions.TransferStarted:
+					Transfer trans = e.Data as Transfer;
+					if (trans != null)
+					{
+						if (trans.Protocol == null)
+						{
+							trans.Protocol = new FlowLib.Protocols.AdcProtocol(trans);
+							trans.Listen();
+							transferManager.AddTransfer(trans);
+						}
+
+						trans.Protocol.ChangeDownloadItem += new FmdcEventHandler(Protocol_ChangeDownloadItem);
+						trans.Protocol.RequestTransfer += new FmdcEventHandler(Protocol_RequestTransfer);
+						trans.ProtocolChange += new FmdcEventHandler(trans_ProtocolChange);
+						e.Handled = true;
+					}
+					break;
+			}
+		}
+
+
+		void Connection_UpdateTLS(object sender, FlowLib.Events.FmdcEventArgs e)
+		{
+			switch (e.Action)
+			{
+				case Actions.TransferStarted:
+					Transfer trans = e.Data as Transfer;
+					if (trans != null)
+					{
+						if (trans.Protocol == null)
+						{
+							trans.Protocol = new FlowLib.Protocols.AdcProtocol(trans);
+							trans.SecureUpdate += new FmdcEventHandler(trans_SecureUpdate);
+							trans.SecureProtocol = FlowLib.Enums.SecureProtocols.TLS;
+							trans.Listen();
+							transferManager.AddTransfer(trans);
+						}
+
+						trans.Protocol.ChangeDownloadItem += new FmdcEventHandler(Protocol_ChangeDownloadItem);
+						trans.Protocol.RequestTransfer += new FmdcEventHandler(Protocol_RequestTransfer);
+						trans.ProtocolChange += new FmdcEventHandler(trans_ProtocolChange);
+						e.Handled = true;
+					}
+					break;
+			}
+		}
+
+		void hubConnection_ConnectionStatusChange(object sender, FmdcEventArgs e)
         {
             switch (e.Action)
             {

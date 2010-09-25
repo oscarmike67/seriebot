@@ -30,7 +30,7 @@ namespace ReleaseBot
     {
         public IEnumerable<KeyValuePair<string, ContentInfo>> Data { get; set; }
         public SortedList<string, int> IgnoreList { get; set; }
-        public SortedList<string, int> DuplicatesList { get; set; }
+        public SortedList<string, EpisodeInfo> DuplicatesList { get; set; }
         public int Progress { get; set; }
     }
 }
