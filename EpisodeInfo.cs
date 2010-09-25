@@ -46,6 +46,8 @@ namespace ReleaseBot
             set;
         }
 
+        public string RawFileName { get; set; }
+
         public static EpisodeInfo Parse(string str)
         {
             //  1  2             3                   4

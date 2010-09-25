@@ -42,8 +42,11 @@ namespace ReleaseBot
 
 	public class Settings : Xmpl
 	{
-		public const string KEY_USE_DEBUG = "UseDefault";
+		public const string KEY_USE_DEBUG = "UseDebug";
 		public const string KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE = "MaxNofLinesInMsg";
+		public const string KEY_USE_ACTIVE_CONNECTION_MODE = "UseActiveConnectionMode";
+		public const string KEY_PORT_TCP_AND_UDP = "ActivePort";
+		public const string KEY_PORT_TLS = "TlsPort";
 
 		public bool UseDebug
 		{
@@ -67,6 +70,31 @@ namespace ReleaseBot
 					return;
 
 				fhub.Set(KEY_USE_DEBUG, value.ToString());
+			}
+		}
+
+		public bool UserActiveConnectionMode
+		{
+			get
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return false;
+
+				string strValue;
+				bool usActive;
+				if (fhub.TryGetValue(KEY_USE_ACTIVE_CONNECTION_MODE, out strValue) && bool.TryParse(strValue, out usActive))
+					return usActive;
+				else
+					return false;
+			}
+			set
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return;
+
+				fhub.Set(KEY_USE_ACTIVE_CONNECTION_MODE, value.ToString());
 			}
 		}
 
@@ -95,6 +123,56 @@ namespace ReleaseBot
 			}
 		}
 
+		public int ActivePort
+		{
+			get
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return -1;
+
+				string strValue;
+				int value;
+				if (fhub.TryGetValue(KEY_PORT_TCP_AND_UDP, out strValue) && int.TryParse(strValue, out value))
+					return value;
+				else
+					return -1;
+			}
+			set
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return;
+
+				fhub.Set(KEY_PORT_TCP_AND_UDP, value.ToString());
+			}
+		}
+
+		public int TlsPort
+		{
+			get
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return -1;
+
+				string strValue;
+				int value;
+				if (fhub.TryGetValue(KEY_PORT_TLS, out strValue) && int.TryParse(strValue, out value))
+					return value;
+				else
+					return -1;
+			}
+			set
+			{
+				HubSetting fhub = this.GetFirstOrDefault();
+				if (fhub == null)
+					return;
+
+				fhub.Set(KEY_PORT_TLS, value.ToString());
+			}
+		}
+
 		public Settings()
 			: base()
 		{
@@ -102,6 +180,8 @@ namespace ReleaseBot
 			Nodes.Remove("Hub");
 			hubAttr.Add(KEY_USE_DEBUG);
 			hubAttr.Add(KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE);
+			hubAttr.Add(KEY_USE_ACTIVE_CONNECTION_MODE);
+			hubAttr.Add(KEY_PORT_TCP_AND_UDP);
 			Nodes.Add("Hub", hubAttr);
 
 		}

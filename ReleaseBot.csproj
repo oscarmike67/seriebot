@@ -111,6 +111,7 @@
     <Compile Include="EmptySerieInfo.cs" />
     <Compile Include="EpisodeInfo.cs" />
     <Compile Include="DownloadHandler.cs" />
+    <Compile Include="FunctionTypes.cs" />
     <Compile Include="Ignore.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -151,6 +152,10 @@
       <Project>{4C9A3F81-7660-4170-8D6B-62C239922C89}</Project>
       <Name>FlowLib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Changelog.txt" />
+    <Content Include="Todo.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
