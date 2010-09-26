@@ -120,46 +120,10 @@ namespace ReleaseBot
                     }
                     break;
                 case "new":
-                    usr = connection.GetUser(id);
-                    if (usr != null)
-                    {
-                        long share;
-                        if (!Program.USE_ACTIVE_MODE && usr.Tag.Mode != FlowLib.Enums.ConnectionTypes.Direct)
-                        {
-                            connection.SendMessage(Actions.PrivateMessage, id, "You need to be active to use this command.");
-                        }
-                        else if (!long.TryParse(usr.UserInfo.Share, out share) || share <= 0)
-                        {
-                            connection.SendMessage(Actions.PrivateMessage, id, "You need to share stuff to use this command.");
-                        }
-                        else
-                        {
-                            connection.SendMessage(Actions.PrivateMessage, id, "Please note that this command may take several minutes to complete. (Writing the command more then once will reset your position in queue and place you last)");
-                            connection.GetFileList(usr, "new");
-                        }
-                    }
-                    break;
 				case "list":
-					usr = connection.GetUser(id);
-					if (usr != null)
-					{
-						long share;
-						if (!Program.USE_ACTIVE_MODE && usr.Tag.Mode != FlowLib.Enums.ConnectionTypes.Direct)
-						{
-							connection.SendMessage(Actions.PrivateMessage, id, "You need to be active to use this command.");
-						}
-						else if (!long.TryParse(usr.UserInfo.Share, out share) || share <= 0)
-						{
-							connection.SendMessage(Actions.PrivateMessage, id, "You need to share stuff to use this command.");
-						}
-						else
-						{
-							connection.SendMessage(Actions.PrivateMessage, id, "Please note that this command may take several minutes to complete. (Writing the command more then once will reset your position in queue and place you last)");
-							connection.GetFileList(usr, "list");
-						}
-					}
-					break;
                 case "debug":
+                case "countdown":
+                case "cd":
                     usr = connection.GetUser(id);
                     if (usr != null)
                     {
@@ -175,7 +139,7 @@ namespace ReleaseBot
                         else
                         {
                             connection.SendMessage(Actions.PrivateMessage, id, "Please note that this command may take several minutes to complete. (Writing the command more then once will reset your position in queue and place you last)");
-                            connection.GetFileList(usr, "debug");
+                            connection.GetFileList(usr, command);
                         }
                     }
                     break;
