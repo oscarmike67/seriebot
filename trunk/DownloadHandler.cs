@@ -92,14 +92,17 @@ namespace ReleaseBot
 
                 if (share != null)
                 {
-					switch (func)
-					{
-						case "new":
-							FuncListShare(connection, share, usrId, FunctionTypes.ListNewEpisodes); break;
-						case "list":
-							FuncListShare(connection, share, usrId, FunctionTypes.ListAllEpisodes); break;
+                    switch (func)
+                    {
+                        case "new":
+                            FuncListShare(connection, share, usrId, FunctionTypes.ListNewEpisodes); break;
+                        case "list":
+                            FuncListShare(connection, share, usrId, FunctionTypes.ListAllEpisodes); break;
                         case "debug":
                             FuncListShare(connection, share, usrId, FunctionTypes.ListDebugInfoOnEpisodes); break;
+                        case "countdown":
+                        case "cd":
+                            FuncCountDownShare(connection, share, usrId); break;
                     }
                 }
             }
@@ -175,17 +178,9 @@ namespace ReleaseBot
             t.Progress = 1;
         }
 
-        //public static void FuncListShare(DcBot connection, Share share, string usrId, bool listAll)
-        //{
-
-        //}
-
-        public static void FuncListShare(DcBot connection, Share share, string usrId, FunctionTypes funcType)
-		{
-            int lines = 0;
-            StringBuilder sb = new StringBuilder("Your current serie information:\r\n");
-            lines++;
-
+        protected static void GetSeriesFromShare(Share share, out SortedList<SerieInfo, EpisodeInfo> list, out Dictionary<string, KeyValuePair<string, int>> listIgnore)
+        {
+            list = new SortedList<SerieInfo, EpisodeInfo>();
             #region Get latest version of all series
             LogMsg("Copy and split share");
             IEnumerable<KeyValuePair<string, ContentInfo>> tmp = share;
@@ -212,7 +207,7 @@ namespace ReleaseBot
 
             System.Collections.Specialized.StringDictionary sd = new System.Collections.Specialized.StringDictionary();
 
-            var listIgnore = t1Func.IgnoreList.Union(t2Func.IgnoreList).ToDictionary(f => f.Key, System.Collections.Generic.EqualityComparer<string>.Default);
+            listIgnore = t1Func.IgnoreList.Union(t2Func.IgnoreList).ToDictionary(f => f.Key, System.Collections.Generic.EqualityComparer<string>.Default);
 
             var listWithDuplicates = t1Func.DuplicatesList.Where(
                 f => !t2Func.DuplicatesList.ContainsKey(f.Key)
@@ -225,7 +220,7 @@ namespace ReleaseBot
             #endregion
 
             #region Get info from series and remove duplicates (happens because of different folder names)
-            SortedList<SerieInfo, EpisodeInfo> list = new SortedList<SerieInfo, EpisodeInfo>();
+            //SortedList<SerieInfo, EpisodeInfo> list = new SortedList<SerieInfo, EpisodeInfo>();
 
             LogMsg("Get Series");
             foreach (var seriePair in listWithDuplicates)
@@ -252,6 +247,102 @@ namespace ReleaseBot
             }
             LogMsg("/Get Series");
             #endregion
+        }
+
+        public static void FuncCountDownShare(DcBot connection, Share share, string usrId)
+        {
+            int lines = 0;
+            bool anyInfo = false;
+            DateTime todaysDate = DateTime.Now.Date;
+            List<string> servicesUsed = new List<string>();
+            SortedList<SerieInfo, EpisodeInfo> list;
+            Dictionary<string, KeyValuePair<string, int>> listIgnore;
+
+            StringBuilder sb = new StringBuilder("Countdown of your Series:\r\n");
+            lines++;
+
+            GetSeriesFromShare(share, out list, out listIgnore);
+
+            // Get series and make sure we order it on total days left and serie name..
+            SortedList<string , string> outputList = new SortedList<string, string>();
+            foreach (var seriePair in list)
+            {
+                SerieInfo info = seriePair.Key;
+                if (info != null && !listIgnore.ContainsKey(Ignore.CreateName(info.Name)))
+                {
+                    EpisodeInfo epLast = info.LatestEpisode;
+                    EpisodeInfo epNext = info.NextEpisode;
+
+                    if (epNext != null)
+                    {
+                        var difference = epNext.Date.Subtract(todaysDate);
+                        double totalDays = difference.TotalDays;
+                        if (totalDays >= 0)
+                        {
+                            string key = string.Format("{0:000}-{1}", totalDays, info.Name);
+
+                            outputList.Add(key,
+                                           string.Format("\t{0}\t\tDays left: {1} ({2:yyyy-MM-dd})\r\n", info.Name,
+                                                         totalDays, epNext.Date));
+                            servicesUsed.Add(info.ServiceAddress);
+
+                            anyInfo = true;
+                        }
+                    }
+                }
+            }
+
+            foreach (var outputLine in outputList)
+            {
+                sb.Append(outputLine.Value);
+                lines++;
+
+                // Make sure we are not exceeding max number of lines in hub.
+                if (Program.MAX_NUMBER_OF_LINES_IN_MESSAGE <= lines)
+                {
+                    connection.SendMessage(Actions.PrivateMessage, usrId, sb.ToString());
+                    sb = new StringBuilder();
+                    lines = 0;
+                }
+            }
+            LogMsg("/Display Series");
+
+            sb.AppendLine();
+            sb.AppendLine();
+
+            sb.Append("This result was given to you by: http://code.google.com/p/seriebot/ ");
+            string[] servicesUsedDistinct = servicesUsed.Distinct().ToArray();
+            int serviceCount = servicesUsedDistinct.Length;
+            if (serviceCount > 0)
+            {
+                sb.Append("with the help by: ");
+                sb.AppendLine(string.Join(", ", servicesUsedDistinct));
+            }
+            else
+            {
+                sb.AppendLine();
+            }
+
+            //sb.AppendLine("This service is powered by: www.tvrage.com");
+
+            // message will here be converted to right format and then be sent.
+            connection.SendMessage(Actions.PrivateMessage, usrId, sb.ToString());
+        }
+
+        public static void FuncListShare(DcBot connection, Share share, string usrId, FunctionTypes funcType)
+        {
+            int lines = 0;
+            bool anyInfo = false;
+            DateTime todaysDate = DateTime.Now.Date;
+            List<string> servicesUsed = new List<string>();
+            SortedList<SerieInfo, EpisodeInfo> list;
+            Dictionary<string, KeyValuePair<string, int>> listIgnore;
+
+
+            StringBuilder sb = new StringBuilder("Your current serie information:\r\n");
+            lines++;
+
+            GetSeriesFromShare(share, out list, out listIgnore);
 
             int ignoreCount = listIgnore.Count();
             sb.AppendFormat("I have found {0} different series in your share.\r\n", list.Count);
@@ -266,19 +357,19 @@ namespace ReleaseBot
 
             #region Get info about series
             LogMsg("Display Series");
-            bool anyInfo = false;
-            List<string> servicesUsed = new List<string>();
 
             foreach (var seriePair in list)
             {
                 SerieInfo info = seriePair.Key;
                 if (info != null && !listIgnore.ContainsKey(Ignore.CreateName(info.Name)))
                 {
-                    EpisodeInfo ep = info.LatestEpisode;
-                    if (ep != null)
+                    EpisodeInfo epLast = info.LatestEpisode;
+                    EpisodeInfo epNext = info.NextEpisode;
+
+                    if (epLast != null)
                     {
-                        int currentSeason = ep.Version / 100;
-                        int currentEpisode = ep.Version % 100;
+                        int currentSeason = epLast.Version / 100;
+                        int currentEpisode = epLast.Version % 100;
 
                         int usrSeasonVersion = seriePair.Value.Version / 100;
                         int usrEpisodeVersion = seriePair.Value.Version % 100;
@@ -337,9 +428,21 @@ namespace ReleaseBot
                                 }
                                 break;
                             case FunctionTypes.ListDebugInfoOnEpisodes:
-                                    anyInfo = true;
-                                    sb.AppendFormat("\t{0}\t(Episode: S{1:00}E{2:00})\r\n\t\t{3}\r\n", info.Name, usrSeasonVersion,
-                                                    usrEpisodeVersion, usrEpisode.RawFileName);
+                                anyInfo = true;
+                                sb.AppendFormat("\t{0}\t\t(Episode: S{1:00}E{2:00})\r\n\t\t{3}\r\n", info.Name, usrSeasonVersion,
+                                                usrEpisodeVersion, usrEpisode.RawFileName);
+                                break;
+                            case FunctionTypes.ListCountDownEpisodes:
+                                if (epNext != null)
+                                {
+                                    var difference = epNext.Date.Subtract(todaysDate);
+                                    if (difference.TotalDays >= 0)
+                                    {
+                                        sb.AppendFormat("\t{0}\t\tDays left: {1} ({2:yyyy-MM-dd})\r\n", info.Name,
+                                                        difference.TotalDays, epNext.Date);
+                                        anyInfo = true;
+                                    }
+                                }
                                 break;
                         }
                     }

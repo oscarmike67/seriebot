@@ -10,6 +10,7 @@ namespace ReleaseBot
         None = 0,
         ListNewEpisodes,
         ListAllEpisodes,
-        ListDebugInfoOnEpisodes
+        ListDebugInfoOnEpisodes,
+        ListCountDownEpisodes
     }
 }
