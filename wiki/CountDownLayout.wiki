@@ -79,7 +79,7 @@ This result was given to you by: http://code.google.com/p/seriebot/ with the hel
 	Next week (2010-10-04 -> 2010-10-10):
 		MythBusters (2010-10-06)
 
-	More than a month:
+	More than 2 weeks:
 		V (2009) (2010-11-01)
 		Burn Notice (2010-11-11)
 		Warehouse 13 (2010-12-01)
