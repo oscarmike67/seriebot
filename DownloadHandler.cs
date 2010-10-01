@@ -264,15 +264,13 @@ namespace ReleaseBot
             GetSeriesFromShare(share, out list, out listIgnore);
 
             // Get series and make sure we order it on total days left and serie name..
-            SortedList<string , string> outputList = new SortedList<string, string>();
+            SortedList<string , SerieInfo> listOrderedByDate = new SortedList<string, SerieInfo>();
             foreach (var seriePair in list)
             {
                 SerieInfo info = seriePair.Key;
                 if (info != null && !listIgnore.ContainsKey(Ignore.CreateName(info.Name)))
                 {
-                    EpisodeInfo epLast = info.LatestEpisode;
                     EpisodeInfo epNext = info.NextEpisode;
-
                     if (epNext != null)
                     {
                         var difference = epNext.Date.Subtract(todaysDate);
@@ -280,10 +278,8 @@ namespace ReleaseBot
                         if (totalDays >= 0)
                         {
                             string key = string.Format("{0:000}-{1}", totalDays, info.Name);
+                            listOrderedByDate.Add(key, info);
 
-                            outputList.Add(key,
-                                           string.Format("\t{0}\t\tDays left: {1} ({2:yyyy-MM-dd})\r\n", info.Name,
-                                                         totalDays, epNext.Date));
                             servicesUsed.Add(info.ServiceAddress);
 
                             anyInfo = true;
@@ -292,10 +288,135 @@ namespace ReleaseBot
                 }
             }
 
-            foreach (var outputLine in outputList)
+            List<string> outputList = new List<string>();
+            DateTime lastDate = DateTime.MinValue;
+            DateTime today = DateTime.Today;
+            DateTime tomorrow = DateTime.Today.AddDays(1);
+            int nOfDaysLeftInWeek = 0;
+            switch (today.DayOfWeek)
             {
-                sb.Append(outputLine.Value);
-                lines++;
+                case DayOfWeek.Monday:
+                    nOfDaysLeftInWeek = 6;
+                    break;
+                case DayOfWeek.Tuesday:
+                    nOfDaysLeftInWeek = 5;
+                    break;
+                case DayOfWeek.Wednesday:
+                    nOfDaysLeftInWeek = 4;
+                    break;
+                case DayOfWeek.Thursday:
+                    nOfDaysLeftInWeek = 3;
+                    break;
+                case DayOfWeek.Friday:
+                    nOfDaysLeftInWeek = 2;
+                    break;
+                case DayOfWeek.Saturday:
+                    nOfDaysLeftInWeek = 1;
+                    break;
+                case DayOfWeek.Sunday:
+                default:
+                    nOfDaysLeftInWeek = 0;
+                    break;
+            }
+
+            bool nextWeekHasHit = false;
+            bool moreThenAMonthHasHit = false;
+
+            foreach (var orderedPair in listOrderedByDate)
+            {
+                bool showDateAfterName = false;
+                bool stuffAdded = false;
+
+                if (DateTime.Compare(lastDate, orderedPair.Value.NextEpisode.Date.Date) < 0)
+                {
+                    lastDate = orderedPair.Value.NextEpisode.Date.Date;
+
+                    if (DateTime.Equals(today, lastDate.Date))
+                    {
+                        sb.Append("\tToday");
+                        sb.AppendFormat(" ({0:yyyy-MM-dd}):", lastDate);
+                        stuffAdded = true;
+                    }
+                    else if (DateTime.Equals(tomorrow, lastDate.Date))
+                    {
+                        sb.Append("\tTomorrow");
+                        sb.AppendFormat(" ({0:yyyy-MM-dd}):", lastDate);
+                        stuffAdded = true;
+                    }
+                    else
+                    {
+                        // How many days have to pass until this date?
+                        var timeLeft = lastDate.Subtract(today);
+                        // Does this date occure this week?
+                        if (timeLeft.TotalDays <= nOfDaysLeftInWeek)
+                        {
+                            switch (lastDate.DayOfWeek)
+                            {
+                                case DayOfWeek.Monday:
+                                    sb.Append("\tMonday");
+                                    break;
+                                case DayOfWeek.Tuesday:
+                                    sb.Append("\tTuesday");
+                                    break;
+                                case DayOfWeek.Wednesday:
+                                    sb.Append("\tWednesday");
+                                    break;
+                                case DayOfWeek.Thursday:
+                                    sb.Append("\tThursday");
+                                    break;
+                                case DayOfWeek.Friday:
+                                    sb.Append("\tFriday");
+                                    break;
+                                case DayOfWeek.Saturday:
+                                    sb.Append("\tSaturday");
+                                    break;
+                                case DayOfWeek.Sunday:
+                                    sb.Append("\tSunday");
+                                    break;
+                            }
+                            sb.AppendFormat(" ({0:yyyy-MM-dd}):", lastDate);
+                            stuffAdded = true;
+                        }
+                        else if (timeLeft.TotalDays <= 7 + nOfDaysLeftInWeek)  // Does this date occure next week?
+                        {
+                            if (!nextWeekHasHit)
+                            {
+                                sb.Append("\tNext week");
+                                var dateBeginingOfNextWeek = today.AddDays(1 + nOfDaysLeftInWeek);
+                                var dateEndingOfNextWeek = today.AddDays(7 + nOfDaysLeftInWeek);
+                                sb.AppendFormat(" ({0:yyyy-MM-dd} -> {0:yyyy-MM-dd}):", dateBeginingOfNextWeek,
+                                                dateEndingOfNextWeek);
+
+                                nextWeekHasHit = true;
+                                stuffAdded = true;
+                            }
+                            showDateAfterName = true;
+                        }else
+                        {
+                            if (!moreThenAMonthHasHit)
+                            {
+                                sb.Append("\tMore than 2 weeks:");
+                                moreThenAMonthHasHit = true;
+                                stuffAdded = true;
+                            }
+                            showDateAfterName = true;
+                        }
+                    }
+
+                    if (stuffAdded)
+                    {
+                        sb.AppendLine();
+                        lines++;
+                    }
+                }
+
+                sb.Append("\t\t");
+                sb.Append(orderedPair.Value.Name);
+
+                if (showDateAfterName)
+                {
+                    sb.AppendFormat(" ({0:yyyy-MM-dd})", lastDate);
+                }
 
                 // Make sure we are not exceeding max number of lines in hub.
                 if (Program.MAX_NUMBER_OF_LINES_IN_MESSAGE <= lines)
@@ -304,7 +425,11 @@ namespace ReleaseBot
                     sb = new StringBuilder();
                     lines = 0;
                 }
+                
+                sb.AppendLine();
+                lines++;
             }
+
             LogMsg("/Display Series");
 
             sb.AppendLine();
