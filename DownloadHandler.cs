@@ -384,7 +384,7 @@ namespace ReleaseBot
                                 sb.Append("\tNext week");
                                 var dateBeginingOfNextWeek = today.AddDays(1 + nOfDaysLeftInWeek);
                                 var dateEndingOfNextWeek = today.AddDays(7 + nOfDaysLeftInWeek);
-                                sb.AppendFormat(" ({0:yyyy-MM-dd} -> {0:yyyy-MM-dd}):", dateBeginingOfNextWeek,
+                                sb.AppendFormat(" ({0:yyyy-MM-dd} -> {1:yyyy-MM-dd}):", dateBeginingOfNextWeek,
                                                 dateEndingOfNextWeek);
 
                                 nextWeekHasHit = true;
