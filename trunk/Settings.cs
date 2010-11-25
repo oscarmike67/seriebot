@@ -47,6 +47,8 @@ namespace ReleaseBot
 		public const string KEY_USE_ACTIVE_CONNECTION_MODE = "UseActiveConnectionMode";
 		public const string KEY_PORT_TCP_AND_UDP = "ActivePort";
 		public const string KEY_PORT_TLS = "TlsPort";
+        public const string KEY_CONVERT_EXTERNAL_TO_INTERNAL = "ConvertExternalIpToInternalIp";
+        public const string KEY_INTERNAL_IP = "InternalIp";
 
 		public bool UseDebug
 		{
@@ -98,7 +100,32 @@ namespace ReleaseBot
 			}
 		}
 
-		public int MaxNumberOfLinesInMessage
+        public bool ConvertExternalIpToInternalIp
+        {
+            get
+            {
+                HubSetting fhub = this.GetFirstOrDefault();
+                if (fhub == null)
+                    return false;
+
+                string strValue;
+                bool shouldConvert;
+                if (fhub.TryGetValue(KEY_CONVERT_EXTERNAL_TO_INTERNAL, out strValue) && bool.TryParse(strValue, out shouldConvert))
+                    return shouldConvert;
+                else
+                    return false;
+            }
+            set
+            {
+                HubSetting fhub = this.GetFirstOrDefault();
+                if (fhub == null)
+                    return;
+
+                fhub.Set(KEY_CONVERT_EXTERNAL_TO_INTERNAL, value.ToString());
+            }
+        }
+
+        public int MaxNumberOfLinesInMessage
 		{
 			get
 			{
@@ -182,8 +209,9 @@ namespace ReleaseBot
 			hubAttr.Add(KEY_MAX_NUMBER_OF_LINES_IN_MESSAGE);
 			hubAttr.Add(KEY_USE_ACTIVE_CONNECTION_MODE);
 			hubAttr.Add(KEY_PORT_TCP_AND_UDP);
-			Nodes.Add("Hub", hubAttr);
-
+            hubAttr.Add(KEY_CONVERT_EXTERNAL_TO_INTERNAL);
+            hubAttr.Add(KEY_INTERNAL_IP);
+            Nodes.Add("Hub", hubAttr);
 		}
     }
 }

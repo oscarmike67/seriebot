@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Serialization;
 
 namespace ReleaseBot
 {
@@ -56,6 +57,8 @@ namespace ReleaseBot
             get;
             set;
         }
+
+        [XmlElement(ElementName = "Genres")]
         public string Genres
         {
             get;

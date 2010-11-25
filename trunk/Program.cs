@@ -36,6 +36,7 @@ namespace ReleaseBot
 		public static bool USE_ACTIVE_MODE = false;
 		public static int PORT_ACTIVE = 11010;
 		public static int PORT_TLS = 11011;
+        public static bool CONVERT_EXTERNAL_IP_TO_INTERNAL_IP = false;
 
 		public static string DEBUG_LOG_FILEPATH;
 
@@ -70,9 +71,12 @@ namespace ReleaseBot
                 if (xml.Hubs.Count > 0)
                 {
                     settings = xml.Hubs[0];
+
 					// Set custom settings
 					DEBUG = xml.UseDebug;
 					USE_ACTIVE_MODE = xml.UserActiveConnectionMode;
+                    CONVERT_EXTERNAL_IP_TO_INTERNAL_IP = xml.ConvertExternalIpToInternalIp;
+
 					int prt = xml.ActivePort;
 					if (prt >= System.Net.IPEndPoint.MinPort && prt <= System.Net.IPEndPoint.MaxPort)
 					{
@@ -89,6 +93,19 @@ namespace ReleaseBot
 					{
 						MAX_NUMBER_OF_LINES_IN_MESSAGE = tmp;
 					}
+
+
+                    WriteLine("*** Getting External IP");
+                    //string strIp = FlowLib.Utils.WebOperations.GetPage("http://ip.flowertwig.org");
+                    //System.Net.IPAddress ipAddress;
+                    //if (System.Net.IPAddress.TryParse(strIp, out ipAddress))
+                    //{
+                    //    WriteLine("\tIP: " + strIp);
+                    //    settings.Set("ExternalIP", strIp);
+                    //}else
+                    //{
+                    //    WriteLine("\tUnable to get External IP");
+                    //}
 
 					DcBot bot = new DcBot(settings);
 					bot.Connect();

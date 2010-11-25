@@ -26,6 +26,8 @@ using FlowLib.Containers.Security;
 using System.Text;
 using FlowLib.Protocols;
 using FlowLib.Managers;
+using FlowLib.Protocols.Adc;
+using FlowLib.Protocols.HubNmdc;
 using FlowLib.Utils.FileLists;
 using System.Security.Cryptography.X509Certificates;
 using System.IO;
@@ -58,9 +60,16 @@ namespace ReleaseBot
 			// Do we want bot to be active?
 			if (Program.USE_ACTIVE_MODE)
 			{
-				share.Port = Program.PORT_ACTIVE;
+                if (Program.PORT_TLS > 0)
+                {
+                    share.Port = Program.PORT_TLS;
+                }
+                else
+                {
+                    share.Port = Program.PORT_ACTIVE;
+                }
 
-				incomingConnectionListener = new TcpConnectionListener(share.Port);
+                incomingConnectionListener = new TcpConnectionListener(Program.PORT_ACTIVE);
 				incomingConnectionListener.Update += new FmdcEventHandler(Connection_Update);
 				incomingConnectionListener.Start();
 
@@ -74,10 +83,11 @@ namespace ReleaseBot
 
             hubConnection = new Hub(settings, this);
 
-            hubConnection.Me.TagInfo.Version = "Serie V:20100323";
+            hubConnection.Me.TagInfo.Version = "Serie V:20101125";
             hubConnection.Me.TagInfo.Slots = 2;
             // DO NOT CHANGE THIS LINE!
             hubConnection.Me.Set(UserInfo.PID, "7OP7K374IKV7YMEYUI5F5R4YICFT36M7FL64AWY");
+
 
 			// Adds share to hub
 			hubConnection.Share = share;
@@ -243,7 +253,8 @@ namespace ReleaseBot
             if (hubConnection != null)
             {
                 hubConnection.Protocol.Update += new FmdcEventHandler(prot_Update);
-				if (Program.DEBUG){
+                if (Program.DEBUG)
+                {
 					hubConnection.Protocol.MessageReceived += new FmdcEventHandler(Protocol_MessageReceived);
 					hubConnection.Protocol.MessageToSend += new FmdcEventHandler(Protocol_MessageToSend);
 				}

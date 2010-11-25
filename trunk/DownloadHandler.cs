@@ -27,6 +27,7 @@ using FlowLib.Events;
 using FlowLib.Utils.FileLists;
 using System.IO;
 using System.Threading;
+using ReleaseBot.Clients;
 
 namespace ReleaseBot
 {
@@ -462,7 +463,13 @@ namespace ReleaseBot
             List<string> servicesUsed = new List<string>();
             SortedList<SerieInfo, EpisodeInfo> list;
             Dictionary<string, KeyValuePair<string, int>> listIgnore;
+            ClientInfo clientInfo = null;
 
+            var user = connection.GetUser(usrId);
+            if (user != null && user.Tag != null)
+            {
+                 clientInfo = ClientParser.Parse(user.Tag.Version);
+            }
 
             StringBuilder sb = new StringBuilder("Your current serie information:\r\n");
             lines++;
@@ -501,7 +508,7 @@ namespace ReleaseBot
                         EpisodeInfo usrEpisode = seriePair.Value;
 
                         bool addedInfo = false;
-
+                        MagnetLink magnetLink = null;
 
                         switch (funcType)
                         {
@@ -529,10 +536,16 @@ namespace ReleaseBot
                                         {
                                             sb.AppendFormat("\t{0}: You are behind {1} episode.", info.Name, difEpisode);
                                             addedInfo = true;
+                                            magnetLink = MagnetLink.CreateMagnetLink(clientInfo, info.Name,
+                                                                                     currentSeason,
+                                                                                     usrEpisodeVersion + 1);
                                         }
                                         else
                                         {
                                             sb.AppendFormat("\t{0}: You are behind {1} episodes.", info.Name, difEpisode);
+                                            magnetLink = MagnetLink.CreateMagnetLink(clientInfo, info.Name,
+                                                                                     currentSeason,
+                                                                                     usrEpisodeVersion + 1);
                                             addedInfo = true;
                                         }
                                     }
@@ -546,8 +559,24 @@ namespace ReleaseBot
                                 if (addedInfo)
                                 {
                                     anyInfo = true;
-                                    sb.AppendFormat("\t\t(Your last episode is: S{0:00}E{1:00})\r\n", usrSeasonVersion,
-                                                    usrEpisodeVersion);
+
+                                    bool showUserLastEpisodeInfo =
+                                        magnetLink == null || (clientInfo != null && clientInfo.Type != ClientType.Jucy);
+                                    if (showUserLastEpisodeInfo)
+                                    {
+                                        // If we dont have a magnet. Tell user what version he/she/it has :)
+                                        sb.AppendFormat("\t\t(Your last episode is: S{0:00}E{1:00})",
+                                                        usrSeasonVersion,
+                                                        usrEpisodeVersion);
+                                    }
+
+                                    // Do we have a magnet link to show?
+                                    if (magnetLink != null)
+                                    {
+                                        sb.AppendFormat("\t\t{0}", magnetLink.Link);
+                                    }
+                                    sb.Append("\r\n");
+                                    
                                     servicesUsed.Add(info.ServiceAddress);
                                     lines++;
                                 }
