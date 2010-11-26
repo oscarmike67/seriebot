@@ -41,11 +41,26 @@ namespace ReleaseBot
 
             if (clientSupportsMagnet)
             {
+                StringBuilder sb = new StringBuilder(name);
+                sb.Replace(":", string.Empty);
+                sb.Replace(",", string.Empty);
+                sb.Replace(".", string.Empty);
+                sb.Replace("-", string.Empty);
+                sb.Replace("_", string.Empty);
+                sb.Replace(";", string.Empty);
+                sb.Replace("'", string.Empty);
+                sb.Replace("´", string.Empty);
+                sb.Replace("<", string.Empty);
+                sb.Replace(">", string.Empty);
+                sb.Replace("|", string.Empty);
+                sb.Replace("*", string.Empty);
+                string convertedName = sb.ToString();
+
                 //HttpServerUtility
                 string displayName =
                     HttpUtility.UrlEncode(string.Format(displayNameFormat, name, seasonNumber, episodeNumber));
                 string searchText =
-                    HttpUtility.UrlEncode(string.Format("{0} s{1:00}e{2:00}", name, seasonNumber, episodeNumber));
+                    HttpUtility.UrlEncode(string.Format("{0} s{1:00}e{2:00}", convertedName, seasonNumber, episodeNumber));
 
                 return new MagnetLink {Link = string.Format("magnet:?kt={0}&dn={1}", searchText, displayName)};
             }else
