@@ -54,6 +54,10 @@ namespace ReleaseBot
                 sb.Replace(">", string.Empty);
                 sb.Replace("|", string.Empty);
                 sb.Replace("*", string.Empty);
+                sb.Replace("(", string.Empty);
+                sb.Replace(")", string.Empty);
+                sb.Replace("[", string.Empty);
+                sb.Replace("]", string.Empty);
                 string convertedName = sb.ToString();
 
                 //HttpServerUtility
