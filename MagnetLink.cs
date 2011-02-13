@@ -60,6 +60,12 @@ namespace ReleaseBot
                 sb.Replace("]", string.Empty);
                 string convertedName = sb.ToString();
 
+                string strThe = "The ";
+                if (convertedName.StartsWith(strThe, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    convertedName = convertedName.Remove(0, strThe.Length);
+                }
+
                 //HttpServerUtility
                 string displayName =
                     HttpUtility.UrlEncode(string.Format(displayNameFormat, name, seasonNumber, episodeNumber));
